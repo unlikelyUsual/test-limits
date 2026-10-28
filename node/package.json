@@ -1,0 +1,14 @@
+{
+  "name": "language-benchmark-node",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "express": "4.22.3",
+    "pg": "8.13.1",
+    "redis": "4.7.0"
+  }
+}

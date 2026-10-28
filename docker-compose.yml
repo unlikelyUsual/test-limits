@@ -1,0 +1,112 @@
+services:
+  node:
+    build:
+      context: ./node
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://benchmark:benchmark@postgres-node:5432/benchmark
+      REDIS_URL: redis://redis-node:6379
+      CACHE_TTL_SECONDS: 60
+    ports:
+      - "3001:3000"
+    depends_on:
+      postgres-node:
+        condition: service_healthy
+      redis-node:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    profiles: ["node"]
+
+  bun:
+    build:
+      context: ./bun
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://benchmark:benchmark@postgres-bun:5432/benchmark
+      REDIS_URL: redis://redis-bun:6379
+      CACHE_TTL_SECONDS: 60
+    ports:
+      - "3002:3000"
+    depends_on:
+      postgres-bun:
+        condition: service_healthy
+      redis-bun:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    profiles: ["bun"]
+
+  python:
+    build:
+      context: ./python
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://benchmark:benchmark@postgres-python:5432/benchmark
+      REDIS_URL: redis://redis-python:6379
+      CACHE_TTL_SECONDS: 60
+    ports:
+      - "3003:3000"
+    depends_on:
+      postgres-python:
+        condition: service_healthy
+      redis-python:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    profiles: ["python"]
+
+  postgres-node: &postgres
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: benchmark
+      POSTGRES_PASSWORD: benchmark
+      POSTGRES_DB: benchmark
+    volumes:
+      - ./schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U benchmark -d benchmark"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    profiles: ["node"]
+
+  postgres-bun:
+    <<: *postgres
+    profiles: ["bun"]
+
+  postgres-python:
+    <<: *postgres
+    profiles: ["python"]
+
+  redis-node: &redis
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    profiles: ["node"]
+
+  redis-bun:
+    <<: *redis
+    profiles: ["bun"]
+
+  redis-python:
+    <<: *redis
+    profiles: ["python"]
+
+  k6:
+    image: grafana/k6:0.54.0
+    volumes:
+      - ./load:/scripts:ro
+    profiles: ["load"]
